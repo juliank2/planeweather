@@ -12,6 +12,7 @@ class ApplicationController < ActionController::Base
   public
 
   def airportCoordinates
+    render json: {test: 1}
   end
 
   def forecast
