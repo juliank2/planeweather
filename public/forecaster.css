@@ -1,0 +1,13 @@
+html, body, #map-canvas {
+	height: 100%;
+	margin:0;
+	padding:0
+}
+
+#top-container {
+	 height:100%;
+}
+
+#side-panel {
+	overflow: auto;
+}

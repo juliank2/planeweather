@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" href="http://yui.yahooapis.com/pure/0.5.0/pure-min.css">
+    <link rel="stylesheet" href="forecaster.css">
+    <title>Forecaseter</title>
+    <script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBfy5SkxVVLegjMcuFVlapxBLJ8x_cjUXI"></script>
+    <script type="text/javascript" src="forecaster.js"></script>
+</head>
+<body>
+    <div id="top-container" class="pure-g">
+        <div id="map-canvas" class="pure-u-2-3"></div>
+        <div id="side-panel" class="pure-u-1-3">
+            <form name="flight_details" class="pure-form pure-form-aligned">
+                <fieldset>
+                    <div class="pure-control-group">
+                        <label for="origin">Flight Origin</label>
+                        <input id="origin" type="text" placeholder="LAX or 33.943,-118.408">
+                    </div>
+                    <div class="pure-control-group">
+                        <label for="destination">Flight Destination</label>
+                        <input id="destination" type="text" placeholder="LHR or 51.478,-0.461">
+                    </div>
+                    <div class="pure-control-group">
+                        <label for="date">Flight Departure Date</label>
+                        <input id="date" type="date" placeholder="yyyy-mm-dd">
+                    </div>
+                    <div class="pure-control-group">
+                        <label for="time">Flight Departure Time</label>
+                        <input id="time" type="time" placeholder="hh:mm">
+                    </div>
+                    <div class="pure-control-group">
+                        <label for="speed">Avg. Flight Speed (mph)</label>
+                        <input id="speed" type="number" step="any" placeholder="500">
+                    </div>
+                    <div class="pure-control-group">
+                        <label for="time_d">Frequency of Weather Reports (hrs)</label>
+                        <input id="time_d" type="number" step="any" placeholder="2">
+                    </div>
+                    <div class="pure-controls">
+                        <button class="pure-button pure-button-primary" type="button" onclick="submitFlight()">Forecast</button>
+                    </div>
+                </fieldset>
+            </form>
+            <div class="pure-menu pure-menu-open">
+                <ul id="forecast-container"></ul>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
