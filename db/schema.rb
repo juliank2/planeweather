@@ -24,4 +24,6 @@ ActiveRecord::Schema.define(version: 20150408202226) do
     t.datetime "updated_at", null: false
   end
 
+  add_index "airport_locations", ["code"], name: "index_airport_locations_on_code", using: :btree
+
 end

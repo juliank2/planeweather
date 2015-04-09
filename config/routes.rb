@@ -1,4 +1,5 @@
 Rails.application.routes.draw do
-  get '/resolve/:airportCode' => 'application#airportCoordinates'
-  get '/forecast/:source/:destination/:departureTime/:speed/:interval' => 'application#forecast'
+  # the constraint is required so that float numbers can be passed as a param
+  get '/resolve/:airportCode' => 'main#airportCoordinates', :constraints => { :airportCode => /.*/ }
+  get '/forecast/:source/:destination/:departureTime/:speed/:interval' => 'main#forecast'
 end

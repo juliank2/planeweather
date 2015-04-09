@@ -6,5 +6,6 @@ class CreateAirportLocations < ActiveRecord::Migration
       t.float :longitude
       t.timestamps null: false
     end
+    add_index :airport_locations, :code
   end
 end
