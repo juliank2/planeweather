@@ -2,7 +2,50 @@ class MainController < ApplicationController
   require 'forecast_io'
   require 'geokit'
   protect_from_forgery with: :exception
-  #http_basic_authenticate_with name: "planeweather", password: "plotwatt"
+  #http_basic_authenticate_with name: "planeweather", password: "pw"
+
+  def resolve codeOrCoordinates=params[:codeOrCoordinates]
+    coordinates = getCoordinates codeOrCoordinates
+    if coordinates.nil?
+      unprocessable_entity
+    else
+      render json: coordinates ? {location: coordinates} : {}
+    end
+  end
+
+  def forecast
+    preparedParams = forecastPrepareInput params
+    if preparedParams
+      source, destination, departureTime, speed, hourInterval = preparedParams
+    else
+      unprocessable_entity
+      return
+    end
+    # prepare variables
+    secondsPerHour = 3600
+    ## mph-rate / hour-interval
+    intervalDistance = speed * hourInterval
+    ## (miles / mph-rate) * seconds-per-hour
+    intervalTravelTimeSeconds = (intervalDistance / speed) * secondsPerHour
+    source = Geokit::LatLng.new source[0], source[1]
+    destination = Geokit::LatLng.new destination[0], destination[1]
+    fullDistance = source.distance_to destination
+    travelTimeSeconds = (fullDistance / speed) * secondsPerHour
+    intervalCount = (fullDistance / intervalDistance).floor
+    # get all points on the way including start and end
+    waypoints = getWaypoints source, destination, intervalCount, intervalDistance
+    forecastData = getWaypointWeatherForecasts waypoints, departureTime, travelTimeSeconds, intervalTravelTimeSeconds
+    render json: { forecast: forecastData }
+  end
+
+  private
+
+  ForecastIO.api_key = '7f346b42fc56221786b7a43c97b7e124'
+
+  # respond with a 422 http error
+  def unprocessable_entity
+    render nothing: true, status: :unprocessable_entity
+  end
 
   # string -> [number, number]
   def iataFaaCodeToCoordinates code
@@ -15,12 +58,14 @@ class MainController < ApplicationController
     a =~ /[a-z]{3,3}/i
   end
 
+  # string -> boolean
   def latLongString? a
-    a =~ /\d+(\.\d+)?.*,.*\d+(\.\d+)?/
+    a =~ /-{0,1}\d+(\.\d+)?[^,]*,[^,]*\d+(\.\d+)?/
   end
 
+  # string -> [number, number]
   def parseLatLongString a
-    # .to_f returns 0.0 for values that could not be parsed.
+    # to_f returns 0.0 for values that could not be parsed.
     a.split(',').map {|e| e.to_f}
   end
 
@@ -30,15 +75,6 @@ class MainController < ApplicationController
       iataFaaCodeToCoordinates codeOrCoordinates
     elsif latLongString? codeOrCoordinates
       parseLatLongString codeOrCoordinates
-    end
-  end
-
-  def resolve codeOrCoordinates=params[:codeOrCoordinates]
-    coordinates = getCoordinates codeOrCoordinates
-    if coordinates.nil?
-      unprocessable_entity
-    else
-      render json: coordinates ? {location: coordinates} : {}
     end
   end
 
@@ -67,25 +103,33 @@ class MainController < ApplicationController
       [source, destination, departureTime, speed, hourInterval]
     else false end
   rescue ArgumentError
-    # the exception likely happens because of a date that could not be parsed
+    # the exception usually happens because of a date that could not be parsed
     false
   end
 
   # Hash Array -> Hash
-  # Assumes that the location data in the result data should be a location exactly on the path of travel.
+  # assumes that the location data in the result should be a location exactly on the path of travel.
+  # missing values are set to "null" in the json.
   def transformForecastIoResult a, waypointLocation
     currently = a["currently"]
+    humidity = currently["humidity"]
+    temperature = currently["temperature"]
+    time = currently && currently["time"]
+    time_offset = a["offset"]
+    time_rnd = time && time.to_i.round
+    wind_speed = currently && currently["windSpeed"]
+    incomplete = !(currently and humidity and temperature and time and
+                   time_offset and time_rnd and wind_speed)
     {
-      humidity: currently["humidity"],
-      incomplete: false,
+      humidity: humidity,
+      incomplete: incomplete,
       location: [waypointLocation[0], waypointLocation[1]],
-      location_rnd: [waypointLocation[0].round, waypointLocation[1].round],
-      temperature: currently["temperature"],
-      time: currently && currently["time"],
-      time_offset: a["offset"],
-      # TODO: what does time_rnd stand for?
-      time_rnd: 1425182400,
-      wind_speed: currently && currently["windspeed"]
+      location_rnd: [waypointLocation[0].round(2), waypointLocation[1].round(2)],
+      temperature: temperature,
+      time: time,
+      time_offset: time_offset,
+      time_rnd: time_rnd,
+      wind_speed: wind_speed
     }
   end
 
@@ -110,42 +154,5 @@ class MainController < ApplicationController
       getForecastIoResult(e, time)
     }
     result << getForecastIoResult(destinationWaypoint, arrivalTimeSeconds)
-  end
-
-  def forecast
-    preparedParams = forecastPrepareInput params
-    if preparedParams
-      source, destination, departureTime, speed, hourInterval = preparedParams
-    else
-      unprocessable_entity
-      return
-    end
-    # prepare variables
-    secondsPerHour = 3600
-    ## mph-rate / hour-interval
-    intervalDistance = speed / hourInterval
-    ## (miles / mph-rate) * seconds-per-hour
-    intervalTravelTimeSeconds = (intervalDistance / speed) * secondsPerHour
-    source = Geokit::LatLng.new source[0], source[1]
-    destination = Geokit::LatLng.new destination[0], destination[1]
-    fullDistance = source.distance_to destination
-    travelTimeSeconds = (fullDistance / speed) * secondsPerHour
-    intervalCount = (fullDistance / intervalDistance).floor
-    # get all points on the way including start and end
-    waypoints = getWaypoints source, destination, intervalCount, intervalDistance
-    forecastData = getWaypointWeatherForecasts waypoints, departureTime, travelTimeSeconds, intervalTravelTimeSeconds
-    render json: { forecast: forecastData }
-  end
-
-  private
-
-  ForecastIO.api_key = '7f346b42fc56221786b7a43c97b7e124'
-
-  def unprocessable_entity
-    render nothing: true, status: :unprocessable_entity
-  end
-
-  # number number -> number
-  def latLongToDistance lat, long
   end
 end
