@@ -7,6 +7,9 @@ see https://gist.githubusercontent.com/mandarjog/2bba8a7e2540fbd77bb4/raw/7376ec
 * http://planeweather.herokuapp.com/forecast/rdu/yyv/2015-03-22T8:27:00/900/2
 
 ## installation + setup
+to install dependencies
+    bundle install
+
 to initialise the database for first time use run the custom rake task
     bundle exec rake setup
 

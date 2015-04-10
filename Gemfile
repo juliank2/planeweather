@@ -44,4 +44,4 @@ end
 
 gem 'rails_12factor', group: :production
 gem 'forecast_io'
-gem 'geokit-rails'
+gem 'geokit'
