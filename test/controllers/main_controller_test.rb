@@ -15,8 +15,8 @@ class MainControllerTest < ActionController::TestCase
     assert response["location"].nil?
   end
 
-  test "resolve coordinates" do
-    get :airportCoordinates, {'airportCode' => '1, 1'}
+  test "/resolve coordinates" do
+    get :airportCoordinates, {'airportCode' => '1.1, 1'}
     assert_response :success
     response = ActiveSupport::JSON.decode @response.body
     assert_instance_of Array, response["location"]

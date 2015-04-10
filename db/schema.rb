@@ -16,14 +16,13 @@ ActiveRecord::Schema.define(version: 20150408202226) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
-  create_table "airport_locations", force: :cascade do |t|
-    t.string   "code"
-    t.float    "latitude"
-    t.float    "longitude"
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
+  create_table "airport_locations", id: false, force: :cascade do |t|
+    t.string "iata_faa_code"
+    t.string "primary_key"
+    t.float  "latitude"
+    t.float  "longitude"
   end
 
-  add_index "airport_locations", ["code"], name: "index_airport_locations_on_code", using: :btree
+  add_index "airport_locations", ["iata_faa_code"], name: "index_airport_locations_on_iata_faa_code", using: :btree
 
 end

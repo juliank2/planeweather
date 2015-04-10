@@ -5,7 +5,7 @@ class MainController < ApplicationController
 
   def airportCoordinates code=params[:airportCode]
     if code =~ /[a-z]{3,3}/i
-      locationData = AirportLocation.find_by code: code.downcase
+      locationData = AirportLocation.find_by iata_faa_code: code.downcase
       if locationData
         render json: {location: [locationData.latitude, locationData.longitude]}
       else
