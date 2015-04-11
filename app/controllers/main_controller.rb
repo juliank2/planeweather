@@ -2,7 +2,7 @@ class MainController < ApplicationController
   require 'forecast_io'
   require 'geo-distance'
   protect_from_forgery with: :exception
-  #http_basic_authenticate_with name: "planeweather", password: "pw"
+  #http_basic_authenticate_with name: 'planeweather', password: 'pw'
 
   def resolve codeOrCoordinates=params[:codeOrCoordinates]
     coordinates = getCoordinates codeOrCoordinates
@@ -35,6 +35,7 @@ class MainController < ApplicationController
     render json: { forecast: forecastData }
   end
 
+  # the private methods should probably be moved into a module so they can be tested separately
   private
 
   ForecastIO.api_key = '7f346b42fc56221786b7a43c97b7e124'
@@ -86,6 +87,7 @@ class MainController < ApplicationController
   end
 
   # number number number number float -> [number:latitude, number:longitude]
+  # all latitude/longitude values in degrees.
   def intermediatePoint(lat1, lng1, lat2, lng2, f)
     lat1 = degreesToRadians(lat1)
     lng1 = degreesToRadians(lng1)
@@ -122,7 +124,7 @@ class MainController < ApplicationController
   end
 
   # hash -> [origin, destination, speed, hourInterval]/false
-  # parse and validate params. false on failure
+  # parse and validate params. false on failure.
   def forecastPrepareInput params
     origin = getCoordinates params[:origin]
     destination = getCoordinates params[:destination]
@@ -141,35 +143,39 @@ class MainController < ApplicationController
 
   # Hash Array -> Hash
   # assumes that the location data in the result should be a location exactly on the path of travel.
-  # missing values are set to "null" in the json.
+  # fields with missing values are excluded.
   def transformForecastIoResult a, waypointLocation
-    currently = a["currently"]
-    humidity = currently["humidity"]
-    temperature = currently["temperature"]
-    time = currently && currently["time"]
-    time_offset = a["offset"]
-    time_rnd = time && time.to_i.round
-    wind_speed = currently && currently["windSpeed"]
-    incomplete = !(currently and humidity and temperature and time and
-                   time_offset and time_rnd and wind_speed)
-    {
-      humidity: humidity,
-      incomplete: incomplete,
+    result = {
       location: [waypointLocation[0], waypointLocation[1]],
       location_rnd: [waypointLocation[0].round(2), waypointLocation[1].round(2)],
-      temperature: temperature,
-      time: time,
-      time_offset: time_offset,
-      time_rnd: time_rnd,
-      wind_speed: wind_speed
+      incomplete: false
     }
+    currently = a['currently']
+    if currently
+      time = currently['time']
+      keys = [:humidity, :temperature, :time, :time_offset, :time_rnd, :wind_speed]
+      values =
+        [ currently['humidity'], currently['temperature'], time,
+          a['offset'], time && time.round, currently['windSpeed']
+        ]
+      keys.each_with_index {|key, index|
+        value = values[index]
+        if value then result[key] = value else result[:incomplete] = true end
+      }
+    else
+      result[:incomplete] = true
+    end
+    result
   end
 
   # [latitude, longitude], integer -> Hash
   def getForecastIoResult coordinates, unixTime
     # time must be an integer not a float or else otherwise the api call returns nil
-    forecastIoResult = ForecastIO.forecast coordinates[0], coordinates[1], time: unixTime.to_i,
-                                           params: {exclude: 'hourly,daily,flags'}
+    unixTime = unixTime.to_i
+    forecastIoResult = Rails.cache.fetch("#{coordinates.to_s}/#{unixTime.to_s}", expires_in: 1.hours) {
+      ForecastIO.forecast coordinates[0], coordinates[1], time: unixTime,
+                          params: {exclude: 'hourly,daily,flags'}
+    }
     return forecastIoResult unless forecastIoResult
     transformForecastIoResult forecastIoResult, coordinates
   end

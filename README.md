@@ -2,7 +2,11 @@
 ## objective
 see https://gist.githubusercontent.com/mandarjog/2bba8a7e2540fbd77bb4/raw/7376ec04653cb912caf207e6e167e83d9bc9e2f9/gistfile1.txt
 
-## example calls
+## url
+frontend
+* http://planeweather.herokuapp.com/
+
+example api calls
 * http://planeweather.herokuapp.com/resolve/rdu
 * http://planeweather.herokuapp.com/forecast/rdu/yyv/2015-03-22T8:27:00/900/2
 
@@ -33,6 +37,7 @@ the current implementation uses data from http://openflights.org/data.html.
 relevant files
 * other/airport-data.csv
 * app/model/airport_data.rb
+
 relevant rake task: importAirportData
 
 ### to update the data
@@ -44,6 +49,7 @@ relevant rake task: importAirportData
 ### technical notes about the import
 * depending on the requirements, imports might only be necessary infrequently.
 * the data size is small enough that an import should not take more than 20 seconds.
+
 considering that, and that updating with handling deleted items is not trivial, and that dropping and recreating tables seems to not be easily possible without duplicating the table schema somewhere, the table is emptied before import.
 the table does not have an auto_increment :id column that would continue to grow to its limit afterwards.
 
@@ -53,6 +59,7 @@ the table does not have an auto_increment :id column that would continue to grow
 
 ## choice of deployment target
 i decided to use heroku for deployment because of the possible time savings. ec2 could be nicer but there is more complexity involved because i do not have an account or a running instance yet.
+
 heroku requires a postgresql database and the front-end code has to be put into the "/public" directory.
 
 ## tips for deployment on heroku
@@ -89,15 +96,15 @@ iata-faa-code: a lowercase string
 }
 ```
 
-## get /airport-coordinates/{longitude},{latitude}
+## get /resolve/{longitude},{latitude}
 ### description
 tries to parse the given coordinates
 ### parameters
-coordinates: a longitude number followed by a comma and a latitude number
+coordinates: a longitude number followed by a comma and a latitude number. both numbers in degrees.
 ### example
 #### request
 ```
-/airport-coordinates/2.45 ,   -1.23
+/resolve/2.45 ,   -1.23
 ```
 #### response
 ```
