@@ -60,6 +60,14 @@ function removeMarkers() {
 /*
 ** DOM Manipulation
 */
+function formatValue(value, unit, noUnitSpacing) {
+    if(value) {
+        if(unit) return value + (noUnitSpacing ? "" : " ") + unit
+        else return value
+    }
+    else return "no data available"
+}
+
 function buildForecastListElement(forecastData, index) {
     var li = document.createElement("li");
     li.onmouseover = function() {
@@ -70,7 +78,7 @@ function buildForecastListElement(forecastData, index) {
     };
     var a = document.createElement("a");
     a.href = "#";
-    li.appendChild(a);
+     li.appendChild(a);
     var h = document.createElement("h4");
     a.appendChild(h);
     h.appendChild(document.createTextNode("Forecast for (" + forecastData["location_rnd"][0] + ", " + forecastData["location_rnd"][1] + ")"));
@@ -78,11 +86,11 @@ function buildForecastListElement(forecastData, index) {
     h.appendChild(document.createTextNode((new Date(forecastData["time"]*1000).toUTCString())));
     var p = document.createElement("p");
     a.appendChild(p);
-    p.appendChild(document.createTextNode("temperature: " + forecastData["temperature"] + "\u2109"));
+    p.appendChild(document.createTextNode("temperature: " + formatValue(forecastData["temperature"], "\u2109")));
     p.appendChild(document.createElement("br"));
-    p.appendChild(document.createTextNode("humidity: " + (100*forecastData["humidity"]) + "%"));
+    p.appendChild(document.createTextNode("humidity: " + formatValue(Math.round(100*forecastData["humidity"]), "%", true)));
     p.appendChild(document.createElement("br"));
-    p.appendChild(document.createTextNode("wind speed: " + forecastData["wind_speed"] + "mph"));
+    p.appendChild(document.createTextNode("wind speed: " + formatValue(forecastData["wind_speed"], "mph")));
     return li;
 }
 function removeForecastList() {
@@ -91,6 +99,15 @@ function removeForecastList() {
         forecastList.removeChild(forecastList.firstChild);
     }
 }
+;(function() {
+    //set default values for date and time
+    var d = new Date()
+    var dateString = d.getFullYear() + "-" + d.getMonth() + "-" + d.getDate()
+    var date = document.getElementById("date")
+    date.value = dateString
+    var time = document.getElementById("time")
+    time.value = d.getHours() + ":" + d.getMinutes()
+})()
 
 /*
 ** Validation
@@ -161,7 +178,7 @@ function requestResolve(locStr) {
     resReq.onload = flightVertexListener;
     resReq.open("get", "resolve/" + locStr, true);
     resReq.send();
-}  
+}
 function resolveAndPlotFlightPath(origin, destination) {
     flightPath = [];
     requestResolve(origin);
@@ -185,11 +202,11 @@ function submitFlight() {
         removeMarkers();
         removeFlightPath();
         removeForecastList();
-        
+
         var form = document.flight_details;
         resolveAndPlotFlightPath(form.origin.value, form.destination.value);
         var reqPath = "forecast/" + form.origin.value + "/" + form.destination.value + "/" +
-            form.date.value + "T" + form.time.value + ":00/" + 
+            form.date.value + "T" + form.time.value + ":00/" +
             form.speed.value + "/" + form.time_d.value;
         var req = new XMLHttpRequest();
         req.onload = forecastListener;
@@ -197,4 +214,3 @@ function submitFlight() {
         req.send();
     }
 }
-

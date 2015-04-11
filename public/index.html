@@ -5,7 +5,6 @@
     <link rel="stylesheet" href="forecaster.css">
     <title>Forecaster</title>
     <script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBfy5SkxVVLegjMcuFVlapxBLJ8x_cjUXI"></script>
-    <script type="text/javascript" src="forecaster.js"></script>
 </head>
 <body>
     <div id="top-container" class="pure-g">
@@ -15,11 +14,11 @@
                 <fieldset>
                     <div class="pure-control-group">
                         <label for="origin">Flight Origin</label>
-                        <input id="origin" type="text" placeholder="LAX or 33.943,-118.408">
+                        <input id="origin" type="text" placeholder="LAX or 33.943,-118.408" value="LAX">
                     </div>
                     <div class="pure-control-group">
                         <label for="destination">Flight Destination</label>
-                        <input id="destination" type="text" placeholder="LHR or 51.478,-0.461">
+                        <input id="destination" type="text" placeholder="LHR or 51.478,-0.461" value="51.478,-0.461">
                     </div>
                     <div class="pure-control-group">
                         <label for="date">Flight Departure Date</label>
@@ -31,11 +30,11 @@
                     </div>
                     <div class="pure-control-group">
                         <label for="speed">Avg. Flight Speed (mph)</label>
-                        <input id="speed" type="number" step="any" placeholder="500">
+                        <input id="speed" type="number" step="any" placeholder="500" value="500">
                     </div>
                     <div class="pure-control-group">
                         <label for="time_d">Frequency of Weather Reports (hrs)</label>
-                        <input id="time_d" type="number" step="any" placeholder="2">
+                        <input id="time_d" type="number" step="any" placeholder="2" value="2">
                     </div>
                     <div class="pure-controls">
                         <button class="pure-button pure-button-primary" type="button" onclick="submitFlight()">Forecast</button>
@@ -47,5 +46,6 @@
             </div>
         </div>
     </div>
+    <script type="text/javascript" src="forecaster.js"></script>
 </body>
 </html>
