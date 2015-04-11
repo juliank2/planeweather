@@ -42,6 +42,7 @@ group :development, :test do
   gem 'spring'
 end
 
+# heroku gem
 gem 'rails_12factor', group: :production
 gem 'forecast_io'
-gem 'geokit'
+gem 'geo-distance'

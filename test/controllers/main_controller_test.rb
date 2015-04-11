@@ -29,7 +29,7 @@ class MainControllerTest < ActionController::TestCase
   end
 
   test "forecast" do
-    get :forecast, { source: "rdu", destination: "pvg",
+    get :forecast, { origin: "rdu", destination: "pvg",
                     departureTime: "2015-03-22T8:27:00", speed: "300", interval: "2" }
     assert_response :success
     response = ActiveSupport::JSON.decode @response.body
@@ -44,7 +44,7 @@ class MainControllerTest < ActionController::TestCase
   test "route to forecast" do
     assert_routing(
       { method: 'get', path: '/forecast/rdu/pvg/2015-03-22T8:27:00/500/1' },
-      { controller: "main", action: "forecast", source: "rdu", destination: "pvg",
+      { controller: "main", action: "forecast", origin: "rdu", destination: "pvg",
         departureTime: "2015-03-22T8:27:00", speed: "500", interval: "1" })
   end
 end

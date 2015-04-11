@@ -1,6 +1,6 @@
 class MainController < ApplicationController
   require 'forecast_io'
-  require 'geokit'
+  require 'geo-distance'
   protect_from_forgery with: :exception
   #http_basic_authenticate_with name: "planeweather", password: "pw"
 
@@ -16,24 +16,22 @@ class MainController < ApplicationController
   def forecast
     preparedParams = forecastPrepareInput params
     if preparedParams
-      source, destination, departureTime, speed, hourInterval = preparedParams
+      origin, destination, departureTime, speed, hourInterval = preparedParams
     else
       unprocessable_entity
       return
     end
     # prepare variables
     secondsPerHour = 3600
-    ## mph-rate / hour-interval
     intervalDistance = speed * hourInterval
     ## (miles / mph-rate) * seconds-per-hour
     intervalTravelTimeSeconds = (intervalDistance / speed) * secondsPerHour
-    source = Geokit::LatLng.new source[0], source[1]
-    destination = Geokit::LatLng.new destination[0], destination[1]
-    fullDistance = source.distance_to destination
+    fullDistance = GeoDistance::Vincenty.geo_distance origin[0], origin[1], destination[0], destination[1]
+    fullDistance = fullDistance.to_miles.miles
     travelTimeSeconds = (fullDistance / speed) * secondsPerHour
-    intervalCount = (fullDistance / intervalDistance).floor
+    intervalCount = (fullDistance / intervalDistance).to_i
     # get all points on the way including start and end
-    waypoints = getWaypoints source, destination, intervalCount, intervalDistance
+    waypoints = getWaypoints origin, destination, intervalDistance, fullDistance
     forecastData = getWaypointWeatherForecasts waypoints, departureTime, travelTimeSeconds, intervalTravelTimeSeconds
     render json: { forecast: forecastData }
   end
@@ -78,29 +76,64 @@ class MainController < ApplicationController
     end
   end
 
-  # Geokit::LatLng Geokit::LatLng integer number -> [[number, number] ...]
-  def getWaypoints source, destination, intervalCount, intervalDistance
-    waypoint = source
-    heading = source.heading_to(destination)
-    waypoints = (0..intervalCount).map {
-      waypoint = waypoint.endpoint(heading, intervalDistance, units: :miles)
-      # the bearing/heading changes while travelling
-      heading = waypoint.heading_to(destination)
-      waypoint.to_a
-    }
-    [source.to_a] + waypoints + [destination.to_a]
+  # number -> number
+  def degreesToRadians(a)
+    a * Math::PI / 180
   end
 
-  # hash -> [source, destination, speed, hourInterval]/false
+  # number -> number
+  def radiansToDegrees(a)
+    a * 180 / Math::PI
+  end
+
+  # number number number number float -> [number:latitude, number:longitude]
+  def intermediatePoint(lat1, lng1, lat2, lng2, f)
+    lat1 = degreesToRadians(lat1)
+    lng1 = degreesToRadians(lng1)
+    lat2 = degreesToRadians(lat2)
+    lng2 = degreesToRadians(lng2)
+    d = 2 * Math.asin(
+          Math.sqrt((Math.sin((lat1 - lat2) / 2))**2 +
+                    Math.cos(lat1) * Math.cos(lat2) *
+                    Math.sin((lng1-lng2) / 2)**2))
+    a = Math.sin((1 - f) * d) / Math.sin(d)
+    b = Math.sin(f * d) / Math.sin(d)
+    x = a * Math.cos(lat1) * Math.cos(lng1) + b * Math.cos(lat2) * Math.cos(lng2)
+    y = a * Math.cos(lat1) * Math.sin(lng1) + b * Math.cos(lat2) * Math.sin(lng2)
+    z = a * Math.sin(lat1) + b * Math.sin(lat2)
+    lat = Math.atan2(z, Math.sqrt(x**2 + y**2))
+    lng = Math.atan2(y, x)
+    [radiansToDegrees(lat), radiansToDegrees(lng)]
+  end
+
+  # Array Array integer number -> [[number, number] ...]
+  # creates an array of [latitude, longitude] coordinates including
+  # origin and destination.
+  def getWaypoints origin, destination, intervalDistance, fullDistance
+    o1 = origin[0]
+    o2 = origin[1]
+    d1 = destination[0]
+    d2 = destination[1]
+    fullDistanceFactor = 1 / fullDistance
+    waypoints = (0...fullDistance).step(intervalDistance).map {|coveredDistance|
+      fraction = fullDistanceFactor * coveredDistance
+      intermediatePoint(o1, o2, d1, d2, fraction)
+    }
+    [origin] + waypoints + [destination]
+  end
+
+  # hash -> [origin, destination, speed, hourInterval]/false
   # parse and validate params. false on failure
   def forecastPrepareInput params
-    source = getCoordinates params[:source]
+    origin = getCoordinates params[:origin]
     destination = getCoordinates params[:destination]
     departureTime = DateTime.parse params[:departureTime]
     speed = params[:speed].to_f
     hourInterval = params[:interval].to_f
-    if source and destination and speed and hourInterval
-      [source, destination, departureTime, speed, hourInterval]
+    return false if hourInterval <= 0
+    return false if speed <= 0
+    if origin and destination and speed and hourInterval
+      [origin, destination, departureTime, speed, hourInterval]
     else false end
   rescue ArgumentError
     # the exception usually happens because of a date that could not be parsed
