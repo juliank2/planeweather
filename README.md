@@ -8,7 +8,7 @@ frontend
 
 example api calls
 * http://planeweather.herokuapp.com/resolve/rdu
-* http://planeweather.herokuapp.com/forecast/rdu/yyv/2015-03-22T8:27:00/900/2
+* http://planeweather.herokuapp.com/forecast/rdu/pvg/2015-03-22T8:27:00/900/2
 
 ## installation + setup
 to install dependencies
