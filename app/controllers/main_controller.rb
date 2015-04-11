@@ -29,7 +29,6 @@ class MainController < ApplicationController
     fullDistance = GeoDistance::Vincenty.geo_distance origin[0], origin[1], destination[0], destination[1]
     fullDistance = fullDistance.to_miles.miles
     travelTimeSeconds = (fullDistance / speed) * secondsPerHour
-    intervalCount = (fullDistance / intervalDistance).to_i
     # get all points on the way including start and end
     waypoints = getWaypoints origin, destination, intervalDistance, fullDistance
     forecastData = getWaypointWeatherForecasts waypoints, departureTime, travelTimeSeconds, intervalTravelTimeSeconds

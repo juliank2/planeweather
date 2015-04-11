@@ -11,10 +11,14 @@ to install dependencies
 ```
 bundle install
 ```
+or
+```
+bundle install --path vendor/bundle
+```
 
 to initialise the database for first time use run the custom rake task
 ```
-bundle exec rake setup
+rake setup
 ```
 
 ## to run the tests
@@ -40,22 +44,22 @@ relevant rake task: importAirportData
 ### technical notes about the import
 * depending on the requirements, imports might only be necessary infrequently.
 * the data size is small enough that an import should not take more than 20 seconds.
-considering that, and that updating with handling deleted items is not trivial, and that dropping and recreating tables seems to not be easily possible unless duplicating the table schema somewhere, the table is emptied before import.
+considering that, and that updating with handling deleted items is not trivial, and that dropping and recreating tables seems to not be easily possible without duplicating the table schema somewhere, the table is emptied before import.
 the table does not have an auto_increment :id column that would continue to grow to its limit afterwards.
 
 # additional libraries used
 * forecast-api for access to forecast.io weather data
-* geokit-rails for non-eucledian geometry calculations
+* geo-distance for the vincenty distance calculation
 
 ## choice of deployment target
-i decided to use heroku for deployment because of the possible time savings. ec2 could be nicer, but there is more complexity involved given the fact that i do not have an account or a running instance yet.
+i decided to use heroku for deployment because of the possible time savings. ec2 could be nicer but there is more complexity involved because i do not have an account or a running instance yet.
 heroku requires a postgresql database and the front-end code has to be put into the "/public" directory.
 
 ## tips for deployment on heroku
 if the [heroku toolbelt](https://toolbelt.heroku.com/) is installed then the "heroku" command can be used from inside the project directory.
 
 ### to update the files on heroku
-requires a "heroku remote"(https://devcenter.heroku.com/articles/git#creating-a-heroku-remote) in the local git configuration.
+requires a [heroku remote](https://devcenter.heroku.com/articles/git#creating-a-heroku-remote) in the local git configuration.
 ```
 git push heroku master
 ```
@@ -68,13 +72,17 @@ heroku run rake {task name}
 # rest-api documentation
 all responses have the content-type application/json
 
-## get /airport-coordinates/{iata-faa-code}
+## get /resolve/{iata-faa-code}
 ### description
-translate a given iata/faa airport code to its corresponding latitude and longitude coordinates
+translate a given iata/faa airport code to its corresponding latitude and longitude coordinates.
 ### parameters
-iata-code: a lowercase string
-### response
-example:
+iata-faa-code: a lowercase string
+### example
+#### request
+```
+/resolve/rdu
+```
+#### response
 ```
 {
   "location":  [33.942536, -118.408075]
@@ -87,11 +95,11 @@ tries to parse the given coordinates
 ### parameters
 coordinates: a longitude number followed by a comma and a latitude number
 ### example
-## request
+#### request
 ```
-get /airport-coordinates/2.45 ,   -1.23
+/airport-coordinates/2.45 ,   -1.23
 ```
-## response
+#### response
 ```
 {
   "location":  [2.45, -1.23]
