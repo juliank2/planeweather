@@ -124,6 +124,7 @@ forecasts are cached for one hour.
 * departureTime: ISO8601 local time at departure eg. 2015-03-01T12:00:00
 * speed: flight speed in miles per hour
 * interval: flight time duration between weather reports in hours
+
 ### response
 ```
 {

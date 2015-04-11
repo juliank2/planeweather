@@ -4,8 +4,8 @@ class MainController < ApplicationController
   protect_from_forgery with: :exception
   #http_basic_authenticate_with name: 'planeweather', password: 'pw'
 
-  def resolve codeOrCoordinates=params[:codeOrCoordinates]
-    coordinates = getCoordinates codeOrCoordinates
+  def resolve
+    coordinates = getCoordinates params[:codeOrCoordinates]
     if coordinates
       render json: coordinates ? {location: coordinates} : {}
     elsif coordinates == false then not_found
@@ -25,18 +25,17 @@ class MainController < ApplicationController
     # prepare variables
     secondsPerHour = 3600
     intervalDistance = speed * hourInterval
-    ## (miles / mph-rate) * seconds-per-hour
-    intervalTravelTimeSeconds = (intervalDistance / speed) * secondsPerHour
+    intervalSeconds = hourInterval * secondsPerHour
     fullDistance = GeoDistance::Vincenty.geo_distance origin[0], origin[1], destination[0], destination[1]
     fullDistance = fullDistance.to_miles.miles
     travelTimeSeconds = (fullDistance / speed) * secondsPerHour
     # get all points on the way including start and end
     waypoints = getWaypoints origin, destination, intervalDistance, fullDistance
-    forecastData = getWaypointWeatherForecasts waypoints, departureTime, travelTimeSeconds, intervalTravelTimeSeconds
+    forecastData = getWaypointWeatherForecasts waypoints, departureTime, travelTimeSeconds, intervalSeconds
     render json: { forecast: forecastData }
   end
 
-  # the private methods should probably be moved into a module so they can be tested separately
+  # the private methods could possibly be moved into a module to test them separately
   private
 
   ForecastIO.api_key = '7f346b42fc56221786b7a43c97b7e124'
@@ -93,7 +92,7 @@ class MainController < ApplicationController
 
   # number number number number float -> [number:latitude, number:longitude]
   # all latitude/longitude values in degrees.
-  def intermediatePoint(lat1, lng1, lat2, lng2, f)
+  def intermediatePoint(lat1, lng1, lat2, lng2, fraction)
     lat1 = degreesToRadians(lat1)
     lng1 = degreesToRadians(lng1)
     lat2 = degreesToRadians(lat2)
@@ -102,8 +101,8 @@ class MainController < ApplicationController
           Math.sqrt((Math.sin((lat1 - lat2) / 2))**2 +
                     Math.cos(lat1) * Math.cos(lat2) *
                     Math.sin((lng1-lng2) / 2)**2))
-    a = Math.sin((1 - f) * d) / Math.sin(d)
-    b = Math.sin(f * d) / Math.sin(d)
+    a = Math.sin((1 - fraction) * d) / Math.sin(d)
+    b = Math.sin(fraction * d) / Math.sin(d)
     x = a * Math.cos(lat1) * Math.cos(lng1) + b * Math.cos(lat2) * Math.cos(lng2)
     y = a * Math.cos(lat1) * Math.sin(lng1) + b * Math.cos(lat2) * Math.sin(lng2)
     z = a * Math.sin(lat1) + b * Math.sin(lat2)
@@ -112,7 +111,7 @@ class MainController < ApplicationController
     [radiansToDegrees(lat), radiansToDegrees(lng)]
   end
 
-  # Array Array integer number -> [[number, number] ...]
+  # Array Array number number -> [[number, number] ...]
   # creates an array of [latitude, longitude] coordinates including
   # origin and destination.
   def getWaypoints origin, destination, intervalDistance, fullDistance
@@ -121,7 +120,7 @@ class MainController < ApplicationController
     d1 = destination[0]
     d2 = destination[1]
     fullDistanceFactor = 1 / fullDistance
-    waypoints = (0...fullDistance).step(intervalDistance).map {|coveredDistance|
+    waypoints = (intervalDistance...fullDistance).step(intervalDistance).map {|coveredDistance|
       fraction = fullDistanceFactor * coveredDistance
       intermediatePoint(o1, o2, d1, d2, fraction)
     }
@@ -197,8 +196,9 @@ class MainController < ApplicationController
     # the time interval between the second last and last waypoint may be shorter.
     destinationWaypoint = waypoints.pop
     result = waypoints.map {|e|
-      time = time + intervalTravelTimeSeconds
-      getForecastIoResult(e, time)
+      result = getForecastIoResult(e, time)
+      time += intervalTravelTimeSeconds
+      result
     }
     result << getForecastIoResult(destinationWaypoint, arrivalTimeSeconds)
   end

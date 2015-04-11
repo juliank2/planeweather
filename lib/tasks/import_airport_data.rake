@@ -9,7 +9,7 @@ task :importAirportData => :environment do
       $stderr.puts "Database '#{configuration['database']}' does not exist"
     rescue Exception => error
       $stderr.puts error, *(error.backtrace)
-      $stderr.puts "Couldn't drop #{AirportLocation.table_name}"
+      $stderr.puts "Couldn't clear #{AirportLocation.table_name}"
   end
 
   def importFromFileCsv path
