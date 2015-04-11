@@ -6,10 +6,10 @@ class MainController < ApplicationController
 
   def resolve codeOrCoordinates=params[:codeOrCoordinates]
     coordinates = getCoordinates codeOrCoordinates
-    if coordinates.nil?
-      unprocessable_entity
-    else
+    if coordinates
       render json: coordinates ? {location: coordinates} : {}
+    elsif coordinates == false then not_found
+    else unprocessable_entity
     end
   end
 
@@ -18,7 +18,8 @@ class MainController < ApplicationController
     if preparedParams
       origin, destination, departureTime, speed, hourInterval = preparedParams
     else
-      unprocessable_entity
+      # preparedParams is nil when source or destination could not be found, false in other error cases.
+      if preparedParams.nil? then not_found else unprocessable_entity end
       return
     end
     # prepare variables
@@ -45,6 +46,10 @@ class MainController < ApplicationController
     render nothing: true, status: :unprocessable_entity
   end
 
+  def not_found
+    render nothing: true, status: :not_found
+  end
+
   # string -> [number, number]
   def iataFaaCodeToCoordinates code
     result = AirportLocation.find_by iata_faa_code: code.downcase
@@ -53,12 +58,12 @@ class MainController < ApplicationController
 
   # string -> boolean
   def iataFaaCode? a
-    a =~ /[a-z]{3,3}/i
+    a =~ /^[a-z]{3,3}$/i
   end
 
   # string -> boolean
   def latLongString? a
-    a =~ /-{0,1}\d+(\.\d+)?[^,]*,[^,]*\d+(\.\d+)?/
+    a =~ /^\s*-{0,1}\d+(\.\d+)?\s*,\s*-{0,1}\d+(\.\d+)?\s*/
   end
 
   # string -> [number, number]
@@ -123,8 +128,9 @@ class MainController < ApplicationController
     [origin] + waypoints + [destination]
   end
 
-  # hash -> [origin, destination, speed, hourInterval]/false
-  # parse and validate params. false on failure.
+  # hash -> [origin, destination, speed, hourInterval]/false/nil
+  # parse and validate params. false on failure, nil
+  # if data for origin or destination could not be found.
   def forecastPrepareInput params
     origin = getCoordinates params[:origin]
     destination = getCoordinates params[:destination]
@@ -133,9 +139,12 @@ class MainController < ApplicationController
     hourInterval = params[:interval].to_f
     return false if hourInterval <= 0
     return false if speed <= 0
-    if origin and destination and speed and hourInterval
-      [origin, destination, departureTime, speed, hourInterval]
-    else false end
+    return false unless speed and hourInterval
+    unless origin and destination
+      return false if origin.nil? or destination.nil?
+      return nil
+    end
+    [origin, destination, departureTime, speed, hourInterval]
   rescue ArgumentError
     # the exception usually happens because of a date that could not be parsed
     false

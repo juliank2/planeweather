@@ -24,6 +24,7 @@ to initialise the database for first time use run the custom rake task
 ```
 rake setup
 ```
+the "failed import" lines are expected and relate to the airport location data.
 
 ## to run the tests
 ```
@@ -115,7 +116,8 @@ coordinates: a longitude number followed by a comma and a latitude number. both 
 
 ## get /forecast/{source}/{destination}/{departureTime}/{speed}/{interval}
 ### description
-retrieve forecast data for a flight
+retrieve forecast data for a flight.
+forecasts are cached for one hour.
 ### parameters
 * source: [number, number] | [latitude, longitude] | iata-faa-code
 * destination: same as source
